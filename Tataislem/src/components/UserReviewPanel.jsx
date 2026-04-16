@@ -1,0 +1,223 @@
+import { useEffect, useMemo, useState } from 'react';
+import { FiMessageSquare, FiStar } from 'react-icons/fi';
+import fallbackAvatarA from '../assets/images/user2.jpg';
+import fallbackAvatarB from '../assets/images/user3.png';
+import { requestJson } from '../utils/api';
+import { errorToast, successToast } from '../utils/toast';
+
+const fallbackAvatars = [fallbackAvatarA, fallbackAvatarB];
+
+const buildInitialForm = (review) => ({
+  headline: review?.headline || '',
+  text: review?.text || '',
+  rating: Number(review?.rating) || 5,
+});
+
+const formatReviewDate = (value) => {
+  if (!value) {
+    return 'Not published yet';
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+};
+
+export default function UserReviewPanel({ user, currentReview, onReviewSaved }) {
+  const [formData, setFormData] = useState(() => buildInitialForm(currentReview));
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setFormData(buildInitialForm(currentReview));
+  }, [currentReview]);
+
+  const previewAvatar = useMemo(
+    () => user?.avatarUrl || fallbackAvatars[0],
+    [user?.avatarUrl],
+  );
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+
+    try {
+      const response = await requestJson('/api/account/review', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+
+      successToast(response.message || 'Your review has been saved');
+
+      if (typeof onReviewSaved === 'function') {
+        await onReviewSaved(response.review);
+      }
+    } catch (error) {
+      errorToast(error.message || 'Unable to save your review');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="dashboard-review-stack dashboard-review-stack--user">
+      <section className="dashboard-card dashboard-review-intro">
+        <div className="dashboard-review-intro-copy">
+          <p className="dashboard-section-label">Client Voice</p>
+          <h2>Write one strong testimonial and keep it polished over time.</h2>
+          <p>
+            Your review appears on the public showcase and stays linked to your verified
+            client profile.
+          </p>
+        </div>
+
+        <div className="dashboard-review-intro-pills">
+          <span className="dashboard-review-intro-pill">
+            <FiMessageSquare />
+            One review per account
+          </span>
+          <span className="dashboard-review-intro-pill">Live update on the website</span>
+        </div>
+      </section>
+
+      <div className="dashboard-review-grid">
+        <section className="dashboard-card dashboard-review-form-card">
+          <div className="dashboard-card-head">
+            <div>
+              <p className="dashboard-section-label">Write Your Review</p>
+              <h2>Keep it clear, short, and memorable</h2>
+            </div>
+            <span className="dashboard-card-pill">Live ready</span>
+          </div>
+
+          <form className="dashboard-form dashboard-review-form" onSubmit={handleSubmit}>
+            <div className="dashboard-review-form-row">
+              <label className="dashboard-field">
+                <span>Headline</span>
+                <input
+                  type="text"
+                  maxLength="90"
+                  value={formData.headline}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      headline: event.target.value,
+                    }))
+                  }
+                  placeholder="Presence became visible in every room."
+                />
+              </label>
+
+              <div className="dashboard-field">
+                <span>Rating</span>
+                <div
+                  className="dashboard-rating-picker"
+                  role="radiogroup"
+                  aria-label="Review rating"
+                >
+                  {Array.from({ length: 5 }, (_, index) => {
+                    const value = index + 1;
+                    const active = value <= formData.rating;
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`dashboard-rating-star ${active ? 'is-active' : ''}`}
+                        onClick={() =>
+                          setFormData((current) => ({
+                            ...current,
+                            rating: value,
+                          }))
+                        }
+                        aria-label={`${value} star${value > 1 ? 's' : ''}`}
+                      >
+                        <FiStar />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <label className="dashboard-field">
+              <span>Review</span>
+              <textarea
+                rows="4"
+                maxLength="600"
+                value={formData.text}
+                onChange={(event) =>
+                  setFormData((current) => ({ ...current, text: event.target.value }))
+                }
+                placeholder="Describe the transformation, the quality of the support, and the result you felt."
+                required
+              />
+              <small className="dashboard-input-note">
+                Minimum 20 characters. Keep it clear, specific, and real.
+              </small>
+            </label>
+
+            <div className="dashboard-review-form-foot">
+              <small className="dashboard-review-character-count">
+                {formData.text.length}/600
+              </small>
+            </div>
+
+            <button type="submit" className="auth-submit" disabled={saving}>
+              {saving
+                ? 'Saving review...'
+                : currentReview
+                  ? 'Update Review'
+                  : 'Publish Review'}
+            </button>
+          </form>
+        </section>
+
+        <section className="dashboard-card dashboard-review-preview-card">
+          <div className="dashboard-card-head">
+            <div>
+              <p className="dashboard-section-label">Front Preview</p>
+              <h2>How your testimonial appears on the showcase</h2>
+            </div>
+          </div>
+
+          <article className="testimonial-card center dashboard-review-preview-card-inner">
+            <div className="dashboard-review-preview-copy">
+              {formData.headline ? (
+                <p className="testimonial-headline">{formData.headline}</p>
+              ) : null}
+              <p className="info-block">
+                {formData.text ||
+                  'Your review preview will appear here as soon as you start writing.'}
+              </p>
+            </div>
+
+            <div className="person">
+              <div className="icon-block">
+                <img src={previewAvatar} alt={user?.fullName || 'Client avatar'} />
+              </div>
+
+              <div className="text-block">
+                <p className="name">{user?.fullName || 'Verified client'}</p>
+                <div className="stars" aria-label={`${formData.rating} star review`}>
+                  {Array.from({ length: 5 }, (_, index) => (
+                    <span
+                      key={`preview-star-${index + 1}`}
+                      className={`star ${index < formData.rating ? 'is-active' : ''}`}
+                    >
+                      &#9733;
+                    </span>
+                  ))}
+                </div>
+                <small className="dashboard-review-date">
+                  Last update: {formatReviewDate(currentReview?.updatedAt)}
+                </small>
+              </div>
+            </div>
+          </article>
+        </section>
+      </div>
+    </div>
+  );
+}
