@@ -540,23 +540,31 @@ export default function ServiceCalendarSection({
             <h2>
               {mode === 'admin'
                 ? 'Service reservations timeline'
-                : 'Your service meeting calendar'}
+                : 'Your service schedule'}
             </h2>
             <p>
               {mode === 'admin'
                 ? 'Confirm a paid request or propose other available slots when your agenda is full.'
-                : 'Track your requested meetings, confirmed appointments, and any alternative dates sent by the admin.'}
+                : 'Review requested dates, confirmed sessions, and any alternative options sent by the admin.'}
             </p>
           </div>
 
           <div className="service-calendar-board__summary">
             <div className="service-calendar-summary-pill">
               <FiCalendar />
-              <span>{calendarAppointments.length} scheduled entries</span>
+              <span>
+                {mode === 'admin'
+                  ? `${calendarAppointments.length} scheduled entries`
+                  : `${calendarAppointments.length} meetings in your calendar`}
+              </span>
             </div>
             <div className="service-calendar-summary-pill">
               <FiClock />
-              <span>{pendingWorkflowAppointments.length} active workflow items</span>
+              <span>
+                {mode === 'admin'
+                  ? `${pendingWorkflowAppointments.length} active workflow items`
+                  : `${pendingWorkflowAppointments.length} action item(s) waiting`}
+              </span>
             </div>
           </div>
         </div>
@@ -647,7 +655,7 @@ export default function ServiceCalendarSection({
 
           <div className="service-calendar-agenda">
             <div className="service-calendar-agenda__head">
-              <span>Selected date</span>
+              <span>{mode === 'admin' ? 'Selected date' : 'Selected day'}</span>
               <strong>
                 {fullDateFormatter.format(dayKeyToDate(resolvedSelectedDayKey))}
               </strong>
@@ -678,7 +686,7 @@ export default function ServiceCalendarSection({
                           <FiUser />
                           {mode === 'admin'
                             ? appointment.fullName
-                            : 'Meeting under your client account'}
+                            : 'Scheduled under your client account'}
                         </span>
                         <span>{appointment.email}</span>
                       </div>
@@ -729,7 +737,7 @@ export default function ServiceCalendarSection({
                 <p>
                   {mode === 'admin'
                     ? 'No service meeting is attached to this date yet.'
-                    : 'No service meeting appears on this day yet.'}
+                    : 'No service session is scheduled for this date yet.'}
                 </p>
               </div>
             )}
@@ -746,8 +754,14 @@ export default function ServiceCalendarSection({
             <h2>
               {mode === 'admin'
                 ? 'Manage each paid service request'
-                : 'Choose a new date when the admin sends alternatives'}
+                : 'Review any new date options sent by the admin'}
             </h2>
+            {mode === 'user' ? (
+              <p>
+                When alternative dates are offered, choose the one that suits you best so
+                the admin can confirm the final meeting time.
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -970,7 +984,7 @@ export default function ServiceCalendarSection({
             <p>
               {mode === 'admin'
                 ? 'No pending service scheduling action right now.'
-                : 'No new date needs your attention right now.'}
+                : 'No scheduling decision is waiting for you right now.'}
             </p>
           </div>
         )}

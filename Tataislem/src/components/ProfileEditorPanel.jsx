@@ -41,35 +41,35 @@ export default function ProfileEditorPanel({
     <div className="dashboard-card dashboard-card-profile">
       <div className="dashboard-card-header">
         <div>
-          <p className="dashboard-section-label">Edit Profile</p>
-          <h2>Update your personal information</h2>
+          <p className="dashboard-section-label">Profile Settings</p>
+          <h2>Keep your account details up to date</h2>
         </div>
       </div>
 
       <div className="profile-editor">
         <div className="profile-editor-summary">
           <UserAvatar src={formData.avatarUrl} name={user?.fullName} size="xl" />
-          <div>
+          <div className="profile-editor-identity">
             <strong>{user?.fullName}</strong>
+            <span
+              className={`profile-editor-verified-badge ${
+                user?.emailVerified ? 'is-verified' : 'is-pending'
+              }`}
+            >
+              <FiCheckCircle />
+              <span>
+                {user?.emailVerified ? 'Verified account' : 'Verification pending'}
+              </span>
+            </span>
           </div>
 
           <div className="profile-editor-meta-list">
             <div className="profile-editor-meta">
               <FiShield />
               <span>
-                {user?.role === 'admin' ? 'Administrator account' : 'Client account'}
-              </span>
-            </div>
-            <div
-              className={`profile-editor-meta ${
-                user?.emailVerified ? 'is-success' : 'is-muted'
-              }`}
-            >
-              <FiCheckCircle />
-              <span>
-                {user?.emailVerified
-                  ? 'Email verified and ready for secure access.'
-                  : 'Email verification is still pending.'}
+                {user?.role === 'admin'
+                  ? 'Administrator account'
+                  : 'Verified client profile'}
               </span>
             </div>
           </div>
@@ -182,7 +182,7 @@ export default function ProfileEditorPanel({
                   address: event.target.value,
                 }))
               }
-              placeholder="Address"
+              placeholder="Street, city, region"
               required
             />
           </label>

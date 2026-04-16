@@ -9,9 +9,9 @@ import { requestJson } from '../utils/api';
 import { errorToast, successToast } from '../utils/toast';
 
 const navigationItems = [
-  { id: 'calendar', label: 'Calendar', icon: FiCalendar },
-  { id: 'reviews', label: 'Reviews', icon: FiMessageSquare },
-  { id: 'profile', label: 'Edit Profile', icon: FiSettings },
+  { id: 'calendar', label: 'My Schedule', icon: FiCalendar },
+  { id: 'reviews', label: 'Testimonials', icon: FiMessageSquare },
+  { id: 'profile', label: 'Profile', icon: FiSettings },
 ];
 
 const normalizePhoneNumber = (value) => {
@@ -111,9 +111,9 @@ export default function UserDashboard() {
 
   return (
     <DashboardLayout
-      eyebrow="Client Dashboard"
-      title={`Welcome, ${user?.firstName || 'Client'}`}
-      description="Your private dashboard now includes service scheduling, live testimonials, and profile management in one calm space."
+      eyebrow="Client Portal"
+      title={`Welcome back, ${user?.firstName || 'Client'}`}
+      description="Manage your service appointments, profile details, and public testimonial from one secure client space."
       user={user}
       navItems={navigationItems}
       activeSection={activeSection}
@@ -123,9 +123,12 @@ export default function UserDashboard() {
       {activeSection === 'calendar' ? (
         calendarLoading ? (
           <div className="dashboard-card dashboard-analytics-loading">
-            <p className="dashboard-section-label">Loading Calendar</p>
-            <h2>Preparing your service meeting timeline...</h2>
-            <p>Your requested and confirmed appointments will appear here.</p>
+            <p className="dashboard-section-label">Loading Schedule</p>
+            <h2>Preparing your service calendar...</h2>
+            <p>
+              Your requested dates, confirmed sessions, and next actions will appear here
+              shortly.
+            </p>
           </div>
         ) : (
           <ServiceCalendarSection

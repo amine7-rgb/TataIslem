@@ -64,20 +64,22 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
     <div className="dashboard-review-stack dashboard-review-stack--user">
       <section className="dashboard-card dashboard-review-intro">
         <div className="dashboard-review-intro-copy">
-          <p className="dashboard-section-label">Client Voice</p>
-          <h2>Write one strong testimonial and keep it polished over time.</h2>
+          <p className="dashboard-section-label">Public Testimonial</p>
+          <h2>Share a clear testimonial that reflects your experience.</h2>
           <p>
-            Your review appears on the public showcase and stays linked to your verified
-            client profile.
+            Publish one testimonial from your verified client account and update it
+            whenever your experience evolves.
           </p>
         </div>
 
         <div className="dashboard-review-intro-pills">
           <span className="dashboard-review-intro-pill">
             <FiMessageSquare />
-            One review per account
+            One testimonial per account
           </span>
-          <span className="dashboard-review-intro-pill">Live update on the website</span>
+          <span className="dashboard-review-intro-pill">
+            Visible on the website after publishing
+          </span>
         </div>
       </section>
 
@@ -85,10 +87,10 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
         <section className="dashboard-card dashboard-review-form-card">
           <div className="dashboard-card-head">
             <div>
-              <p className="dashboard-section-label">Write Your Review</p>
-              <h2>Keep it clear, short, and memorable</h2>
+              <p className="dashboard-section-label">Testimonial Form</p>
+              <h2>Write a concise and credible testimonial</h2>
             </div>
-            <span className="dashboard-card-pill">Live ready</span>
+            <span className="dashboard-card-pill">Ready to publish</span>
           </div>
 
           <form className="dashboard-form dashboard-review-form" onSubmit={handleSubmit}>
@@ -105,7 +107,7 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
                       headline: event.target.value,
                     }))
                   }
-                  placeholder="Presence became visible in every room."
+                  placeholder="The session helped me move forward with clarity."
                 />
               </label>
 
@@ -150,11 +152,12 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
                 onChange={(event) =>
                   setFormData((current) => ({ ...current, text: event.target.value }))
                 }
-                placeholder="Describe the transformation, the quality of the support, and the result you felt."
+                placeholder="Describe the support you received, what changed for you, and the result you experienced."
                 required
               />
               <small className="dashboard-input-note">
-                Minimum 20 characters. Keep it clear, specific, and real.
+                Minimum 20 characters. Write naturally, stay specific, and keep it
+                authentic.
               </small>
             </label>
 
@@ -166,10 +169,10 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
 
             <button type="submit" className="auth-submit" disabled={saving}>
               {saving
-                ? 'Saving review...'
+                ? 'Saving testimonial...'
                 : currentReview
-                  ? 'Update Review'
-                  : 'Publish Review'}
+                  ? 'Update Testimonial'
+                  : 'Publish Testimonial'}
             </button>
           </form>
         </section>
@@ -177,8 +180,8 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
         <section className="dashboard-card dashboard-review-preview-card">
           <div className="dashboard-card-head">
             <div>
-              <p className="dashboard-section-label">Front Preview</p>
-              <h2>How your testimonial appears on the showcase</h2>
+              <p className="dashboard-section-label">Website Preview</p>
+              <h2>Preview your testimonial before it goes live</h2>
             </div>
           </div>
 
@@ -191,7 +194,7 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
               ) : null}
               <p className="dashboard-review-preview-text">
                 {formData.text ||
-                  'Your review preview will appear here as soon as you start writing.'}
+                  'Your testimonial preview will appear here as soon as you start writing.'}
               </p>
             </div>
 
@@ -220,7 +223,7 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
                   ))}
                 </div>
                 <small className="dashboard-review-date">
-                  Last update: {formatReviewDate(currentReview?.updatedAt)}
+                  Last updated: {formatReviewDate(currentReview?.updatedAt)}
                 </small>
               </div>
             </div>

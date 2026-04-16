@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FiArrowUpRight, FiLogOut } from 'react-icons/fi';
+import { FiArrowUpRight, FiCheckCircle, FiLogOut } from 'react-icons/fi';
 import UserAvatar from './UserAvatar';
 
 export default function DashboardLayout({
@@ -18,11 +18,11 @@ export default function DashboardLayout({
       <aside className="dashboard-sidebar">
         <div className="dashboard-sidebar-brand">
           <span className="dashboard-sidebar-kicker">Tata Islem</span>
-          <h2>{user?.role === 'admin' ? 'Admin Space' : 'Client Space'}</h2>
+          <h2>{user?.role === 'admin' ? 'Admin Space' : 'Client Portal'}</h2>
           <p>
             {user?.role === 'admin'
               ? 'Monitor the platform and keep the brand operations in one place.'
-              : 'A calm, private space for your profile and future client features.'}
+              : 'Access your appointments, account details, and testimonial settings from one secure space.'}
           </p>
         </div>
 
@@ -72,21 +72,32 @@ export default function DashboardLayout({
               onClick={() => onSectionChange('profile')}
             >
               <UserAvatar src={user?.avatarUrl} name={user?.fullName} size="sm" />
-              <span>
+              <span className="dashboard-user-pill__copy">
                 <strong>{user?.fullName}</strong>
-                <small>
-                  {user?.role === 'admin' ? 'Administrator' : 'Client account'}
-                </small>
+                {user?.role === 'admin' ? (
+                  <small>Administrator</small>
+                ) : (
+                  <small
+                    className={`dashboard-user-pill__status ${
+                      user?.emailVerified ? 'is-verified' : 'is-pending'
+                    }`}
+                  >
+                    <FiCheckCircle />
+                    <span>
+                      {user?.emailVerified ? 'Verified account' : 'Verification pending'}
+                    </span>
+                  </small>
+                )}
               </span>
             </button>
 
             <button
               type="button"
-              className="dashboard-secondary-button"
+              className="dashboard-secondary-button dashboard-topbar-signout"
               onClick={onLogout}
             >
               <FiLogOut />
-              <span>Log Out</span>
+              <span>Sign out</span>
             </button>
           </div>
         </header>
