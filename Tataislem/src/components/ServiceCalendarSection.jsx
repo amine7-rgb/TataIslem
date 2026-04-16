@@ -9,6 +9,7 @@ import {
   FiLink,
   FiRefreshCw,
   FiSend,
+  FiTrash2,
   FiUser,
   FiVideo,
   FiXCircle,
@@ -199,6 +200,7 @@ export default function ServiceCalendarSection({
   onAvailabilityChange,
   onSaveAvailability,
   onConfirmAppointment,
+  onDeclineAppointment,
   onProposeAlternatives,
   onSelectAlternative,
 }) {
@@ -208,7 +210,11 @@ export default function ServiceCalendarSection({
   const [proposalDrafts, setProposalDrafts] = useState({});
 
   const calendarAppointments = (appointments || [])
-    .filter((appointment) => appointment?.paymentStatus === 'paid')
+    .filter(
+      (appointment) =>
+        appointment?.paymentStatus === 'paid' &&
+        appointment?.scheduleStatus !== 'cancelled',
+    )
     .map((appointment) => {
       const displaySlot = getDisplaySlot(appointment);
 
@@ -241,7 +247,8 @@ export default function ServiceCalendarSection({
 
   const pendingWorkflowAppointments = calendarAppointments.filter((appointment) =>
     mode === 'admin'
-      ? appointment.scheduleStatus !== 'confirmed'
+      ? appointment.scheduleStatus === 'pending_admin_confirmation' ||
+        appointment.scheduleStatus === 'pending_client_selection'
       : appointment.scheduleStatus === 'pending_client_selection',
   );
 
@@ -809,6 +816,28 @@ export default function ServiceCalendarSection({
                           {openProposalId === appointment._id
                             ? 'Hide alternatives'
                             : 'Propose other dates'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="dashboard-secondary-button service-action-button is-decline"
+                        disabled={busyOrderId === appointment._id}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              'Remove this service meeting request from the workflow?',
+                            )
+                          ) {
+                            onDeclineAppointment?.(appointment._id);
+                          }
+                        }}
+                      >
+                        <FiTrash2 />
+                        <span>
+                          {busyOrderId === appointment._id
+                            ? 'Removing...'
+                            : 'Decline request'}
                         </span>
                       </button>
                     </div>

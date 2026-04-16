@@ -182,29 +182,38 @@ export default function UserReviewPanel({ user, currentReview, onReviewSaved }) 
             </div>
           </div>
 
-          <article className="testimonial-card center dashboard-review-preview-card-inner">
+          <article className="dashboard-review-preview-card-inner">
+            <div className="dashboard-review-preview-orb" />
+
             <div className="dashboard-review-preview-copy">
               {formData.headline ? (
-                <p className="testimonial-headline">{formData.headline}</p>
+                <p className="dashboard-review-preview-headline">{formData.headline}</p>
               ) : null}
-              <p className="info-block">
+              <p className="dashboard-review-preview-text">
                 {formData.text ||
                   'Your review preview will appear here as soon as you start writing.'}
               </p>
             </div>
 
-            <div className="person">
-              <div className="icon-block">
+            <div className="dashboard-review-preview-person">
+              <div className="dashboard-review-preview-avatar">
                 <img src={previewAvatar} alt={user?.fullName || 'Client avatar'} />
               </div>
 
-              <div className="text-block">
-                <p className="name">{user?.fullName || 'Verified client'}</p>
-                <div className="stars" aria-label={`${formData.rating} star review`}>
+              <div className="dashboard-review-preview-meta">
+                <p className="dashboard-review-preview-name">
+                  {user?.fullName || 'Verified client'}
+                </p>
+                <div
+                  className="dashboard-review-preview-stars"
+                  aria-label={`${formData.rating} star review`}
+                >
                   {Array.from({ length: 5 }, (_, index) => (
                     <span
                       key={`preview-star-${index + 1}`}
-                      className={`star ${index < formData.rating ? 'is-active' : ''}`}
+                      className={`dashboard-review-preview-star ${
+                        index < formData.rating ? 'is-active' : ''
+                      }`}
                     >
                       &#9733;
                     </span>

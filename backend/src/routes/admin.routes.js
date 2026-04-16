@@ -1,6 +1,9 @@
 import express from 'express';
 import {
   confirmServiceSchedule,
+  declineServiceSchedule,
+  exportAdminBookings,
+  getAdminBookings,
   getAdminOverview,
   proposeServiceAlternatives,
   updateAdminAvailability,
@@ -18,6 +21,8 @@ const router = express.Router();
 router.use(requireAuth, requireRole('admin'));
 
 router.get('/overview', getAdminOverview);
+router.get('/bookings', getAdminBookings);
+router.get('/bookings/export', exportAdminBookings);
 router.get('/reviews', getAdminReviews);
 router.get('/google/connect', startGoogleCalendarConnect);
 router.get('/google/callback', handleGoogleCalendarCallback);
@@ -25,6 +30,7 @@ router.delete('/google/disconnect', disconnectGoogleCalendar);
 router.delete('/reviews/:reviewId', deleteReview);
 router.patch('/availability', updateAdminAvailability);
 router.patch('/service-orders/:orderId/confirm', confirmServiceSchedule);
+router.patch('/service-orders/:orderId/decline', declineServiceSchedule);
 router.patch('/service-orders/:orderId/propose-alternatives', proposeServiceAlternatives);
 
 export default router;

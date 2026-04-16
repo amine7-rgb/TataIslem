@@ -6,6 +6,11 @@ import Service from '../models/Service.js';
 import ServiceOrder from '../models/ServiceOrder.js';
 import User from '../models/User.js';
 import {
+  buildAdminBookingsExportFilename,
+  generateAdminBookingsPdf,
+  generateAdminBookingsSpreadsheet,
+} from '../services/adminBookingsExport.service.js';
+import {
   createGoogleCalendarMeeting,
   isGoogleCalendarConfigured,
 } from '../services/googleCalendar.service.js';
@@ -20,6 +25,10 @@ import {
 import { sendServiceScheduleDecisionMail } from '../services/mail.service.js';
 
 const MONTH_WINDOW = 6;
+const DEFAULT_BOOKINGS_PAGE = 1;
+const DEFAULT_BOOKINGS_LIMIT = 8;
+const MAX_BOOKINGS_LIMIT = 40;
+const ALLOWED_BOOKING_TYPES = new Set(['all', 'event', 'service']);
 
 const getMonthKey = (year, month) => `${year}-${String(month).padStart(2, '0')}`;
 
@@ -84,6 +93,147 @@ const groupMonthly = (fieldName, match = {}) => [
 
 const roundPercentage = (value) => Math.round((value + Number.EPSILON) * 10) / 10;
 
+const parsePositiveInteger = (value, fallback, max = Number.MAX_SAFE_INTEGER) => {
+  const parsedValue = Number.parseInt(String(value ?? ''), 10);
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return fallback;
+  }
+
+  return Math.min(parsedValue, max);
+};
+
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const getBookingTypeFilter = (value) =>
+  ALLOWED_BOOKING_TYPES.has(value) ? value : 'all';
+
+const serviceStatusLabels = {
+  pending_admin_confirmation: 'Awaiting admin',
+  pending_client_selection: 'Awaiting client',
+  confirmed: 'Confirmed',
+  cancelled: 'Cancelled',
+};
+
+const formatAdminBookingDate = (value) => {
+  if (!value) {
+    return 'Not scheduled';
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+};
+
+const getAdminBookingsPayload = async ({ type = 'all', search = '' }) => {
+  const normalizedType = getBookingTypeFilter(type);
+  const normalizedSearch = String(search || '').trim();
+  const searchRegex = normalizedSearch ? new RegExp(escapeRegex(normalizedSearch), 'i') : null;
+
+  const eventQuery = {};
+  const serviceQuery = { paymentStatus: 'paid' };
+
+  if (searchRegex) {
+    eventQuery.$or = [
+      { fullName: searchRegex },
+      { email: searchRegex },
+      { phoneNumber: searchRegex },
+      { eventTitle: searchRegex },
+      { eventAddress: searchRegex },
+    ];
+
+    serviceQuery.$or = [
+      { fullName: searchRegex },
+      { email: searchRegex },
+      { phoneNumber: searchRegex },
+      { serviceTitle: searchRegex },
+      { scheduleNote: searchRegex },
+    ];
+  }
+
+  const [eventReservations, serviceReservations] = await Promise.all([
+    normalizedType === 'service'
+      ? []
+      : Reservation.find(eventQuery)
+          .sort({ createdAt: -1 })
+          .select(
+            'fullName email phoneNumber eventTitle eventDate eventAddress amount createdAt paymentStatus seats',
+          )
+          .lean(),
+    normalizedType === 'event'
+      ? []
+      : ServiceOrder.find(serviceQuery)
+          .sort({ createdAt: -1 })
+          .select(
+            'fullName email phoneNumber serviceTitle amount createdAt scheduleStatus currentSlot requestedSlot paymentStatus',
+          )
+          .lean(),
+  ]);
+
+  const eventItems = eventReservations.map((reservation) => ({
+    _id: reservation._id.toString(),
+    type: 'event',
+    typeLabel: 'Event',
+    clientName: reservation.fullName,
+    email: reservation.email,
+    phoneNumber: reservation.phoneNumber,
+    bookingTitle: reservation.eventTitle || 'Untitled event',
+    statusLabel: 'Paid',
+    amount: reservation.amount || 0,
+    secondaryLine: reservation.eventDate
+      ? `Event date: ${formatAdminBookingDate(reservation.eventDate)}`
+      : 'Event date not available',
+    scheduledAt: reservation.eventDate || null,
+    createdAt: reservation.createdAt,
+    location: reservation.eventAddress || '',
+  }));
+
+  const serviceItems = serviceReservations.map((reservation) => {
+    const scheduledAt =
+      reservation.currentSlot?.startAt || reservation.requestedSlot?.startAt || null;
+
+    return {
+      _id: reservation._id.toString(),
+      type: 'service',
+      typeLabel: 'Service',
+      clientName: reservation.fullName,
+      email: reservation.email,
+      phoneNumber: reservation.phoneNumber,
+      bookingTitle: reservation.serviceTitle || 'Untitled service',
+      statusLabel:
+        serviceStatusLabels[reservation.scheduleStatus] || 'Service booked',
+      amount: reservation.amount || 0,
+      secondaryLine: scheduledAt
+        ? `Meeting: ${formatAdminBookingDate(scheduledAt)}`
+        : 'Meeting time pending',
+      scheduledAt,
+      createdAt: reservation.createdAt,
+      location: null,
+    };
+  });
+
+  const items = [...eventItems, ...serviceItems].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  );
+
+  const uniqueClients = new Set(items.map((item) => item.email.toLowerCase())).size;
+  const totalRevenue = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  return {
+    type: normalizedType,
+    search: normalizedSearch,
+    items,
+    stats: {
+      totalBookings: items.length,
+      eventReservations: eventItems.length,
+      serviceReservations: serviceItems.length,
+      uniqueClients,
+      totalRevenue,
+    },
+  };
+};
+
 const findManageableServiceOrder = async (orderId) => {
   return await ServiceOrder.findOne({
     _id: orderId,
@@ -109,6 +259,90 @@ const hasScheduleConflict = async (
     'currentSlot.startAt': { $lt: new Date(new Date(slot.endAt).getTime() + bufferMs) },
     'currentSlot.endAt': { $gt: new Date(new Date(slot.startAt).getTime() - bufferMs) },
   });
+};
+
+export const getAdminBookings = async (req, res) => {
+  try {
+    const page = parsePositiveInteger(req.query.page, DEFAULT_BOOKINGS_PAGE);
+    const limit = parsePositiveInteger(
+      req.query.limit,
+      DEFAULT_BOOKINGS_LIMIT,
+      MAX_BOOKINGS_LIMIT,
+    );
+    const payload = await getAdminBookingsPayload({
+      type: req.query.type,
+      search: req.query.search,
+    });
+
+    const totalPages = Math.max(1, Math.ceil(payload.items.length / limit));
+    const currentPage = Math.min(page, totalPages);
+    const startIndex = (currentPage - 1) * limit;
+    const paginatedItems = payload.items.slice(startIndex, startIndex + limit);
+
+    return res.json({
+      items: paginatedItems,
+      stats: payload.stats,
+      filters: {
+        type: payload.type,
+        search: payload.search,
+      },
+      pagination: {
+        page: currentPage,
+        limit,
+        totalItems: payload.items.length,
+        totalPages,
+        hasPreviousPage: currentPage > 1,
+        hasNextPage: currentPage < totalPages,
+      },
+    });
+  } catch {
+    return res.status(500).json({ error: 'Unable to load bookings overview' });
+  }
+};
+
+export const exportAdminBookings = async (req, res) => {
+  try {
+    const format = req.query.format === 'pdf' ? 'pdf' : 'xls';
+    const payload = await getAdminBookingsPayload({
+      type: req.query.type,
+      search: req.query.search,
+    });
+
+    const title =
+      payload.type === 'event'
+        ? 'Event reservations'
+        : payload.type === 'service'
+          ? 'Service reservations'
+          : 'All reservations';
+    const filename = buildAdminBookingsExportFilename({
+      type: payload.type,
+      format,
+    });
+
+    const fileBuffer =
+      format === 'pdf'
+        ? await generateAdminBookingsPdf({
+            items: payload.items,
+            stats: payload.stats,
+            title,
+          })
+        : generateAdminBookingsSpreadsheet({
+            items: payload.items,
+            stats: payload.stats,
+            title,
+          });
+
+    res.setHeader(
+      'Content-Type',
+      format === 'pdf'
+        ? 'application/pdf'
+        : 'application/vnd.ms-excel; charset=utf-8',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(fileBuffer);
+  } catch {
+    return res.status(500).json({ error: 'Unable to export bookings report' });
+  }
 };
 
 export const getAdminOverview = async (_req, res) => {
@@ -435,6 +669,50 @@ export const confirmServiceSchedule = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       error: error.message || 'Unable to confirm the reservation',
+    });
+  }
+};
+
+export const declineServiceSchedule = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await findManageableServiceOrder(orderId);
+
+    if (!order) {
+      return res.status(404).json({ error: 'Service reservation not found' });
+    }
+
+    if (
+      order.scheduleStatus !== 'pending_admin_confirmation' &&
+      order.scheduleStatus !== 'pending_client_selection'
+    ) {
+      return res.status(409).json({
+        error: 'Only active scheduling requests can be declined',
+      });
+    }
+
+    order.scheduleStatus = 'cancelled';
+    order.alternativeSlots = [];
+    order.confirmedAt = null;
+    order.lastScheduleUpdateAt = new Date();
+    order.scheduleNote = String(req.body?.note || '').trim();
+    order.meetingProvider = null;
+    order.meetingUrl = null;
+    order.googleCalendarEventId = null;
+    order.googleCalendarHtmlLink = null;
+    order.meetingReminderClientSent = false;
+    order.meetingReminderAdminSent = false;
+    await order.save();
+
+    await sendServiceScheduleDecisionMail(order, 'cancelled');
+
+    return res.json({
+      message: 'Service meeting request declined',
+      order,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message || 'Unable to decline the reservation',
     });
   }
 };

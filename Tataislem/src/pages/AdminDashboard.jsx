@@ -8,6 +8,7 @@ import {
   FiCalendar,
   FiCheckCircle,
   FiDollarSign,
+  FiFileText,
   FiMessageSquare,
   FiPlusCircle,
   FiPieChart,
@@ -15,6 +16,7 @@ import {
   FiTrendingUp,
   FiUsers,
 } from 'react-icons/fi';
+import AdminBookingsPanel from '../components/AdminBookingsPanel';
 import AdminEventStudio from '../components/AdminEventStudio';
 import AdminReviewsPanel from '../components/AdminReviewsPanel';
 import AdminServiceStudio from '../components/AdminServiceStudio';
@@ -29,6 +31,7 @@ const navigationItems = [
   { id: 'overview', label: 'Analytics', icon: FiBarChart2 },
   { id: 'events', label: 'Events', icon: FiPlusCircle },
   { id: 'services', label: 'Services', icon: FiBriefcase },
+  { id: 'bookings', label: 'Bookings', icon: FiFileText },
   { id: 'reviews', label: 'Reviews', icon: FiMessageSquare },
   { id: 'calendar', label: 'Calendar', icon: FiCalendar },
   { id: 'activity', label: 'Operations Feed', icon: FiActivity },
@@ -731,6 +734,24 @@ export default function AdminDashboard() {
       setCalendarBusyOrderId('');
     }
   };
+
+  const handleDeclineAppointment = async (orderId) => {
+    setCalendarBusyOrderId(orderId);
+
+    try {
+      const response = await requestJson(`/api/admin/service-orders/${orderId}/decline`, {
+        method: 'PATCH',
+        body: JSON.stringify({}),
+      });
+
+      successToast(response.message || 'Meeting request removed');
+      await reloadOverview();
+    } catch (error) {
+      errorToast(error.message);
+    } finally {
+      setCalendarBusyOrderId('');
+    }
+  };
   const spotlightMetrics = [
     {
       icon: FiDollarSign,
@@ -802,7 +823,7 @@ export default function AdminDashboard() {
     <DashboardLayout
       eyebrow="Admin Intelligence"
       title={`Analytics studio, ${user?.firstName || 'Admin'}`}
-      description="Animated charts, booking momentum, and a clearer view of how the showcase is performing."
+      description=""
       user={user}
       navItems={navigationItems}
       activeSection={activeSection}
@@ -945,6 +966,7 @@ export default function AdminDashboard() {
             onAvailabilityChange={setAvailabilityDraft}
             onSaveAvailability={handleSaveAvailability}
             onConfirmAppointment={handleConfirmAppointment}
+            onDeclineAppointment={handleDeclineAppointment}
             onProposeAlternatives={handleProposeAlternatives}
           />
         )
@@ -968,6 +990,8 @@ export default function AdminDashboard() {
           onServiceCreated={reloadOverview}
         />
       ) : null}
+
+      {activeSection === 'bookings' ? <AdminBookingsPanel /> : null}
 
       {activeSection === 'reviews' ? <AdminReviewsPanel /> : null}
 

@@ -264,6 +264,32 @@ const buildServiceAlternativesTemplate = (data) => `
   </div>
 `;
 
+const buildServiceCancelledTemplate = (data) => `
+  <div style="font-family:Arial,sans-serif;background:#f3efe8;padding:28px">
+    <div style="max-width:640px;margin:auto;background:#fff;border-radius:18px;overflow:hidden">
+      <div style="background:#183b59;padding:22px;text-align:center">
+        <img src="cid:logo" alt="Tata Islem" style="height:58px" />
+      </div>
+      <div style="padding:32px;color:#183b59">
+        <p style="font-size:13px;letter-spacing:0.16em;text-transform:uppercase;color:#c9a24d;margin:0 0 12px">Scheduling update</p>
+        <h2 style="margin:0 0 14px">Your service meeting request was declined</h2>
+        <p>Hello <strong>${data.fullName}</strong>, the admin is currently unable to keep the meeting request for <strong>${data.serviceTitle}</strong>.</p>
+        <div style="margin-top:20px;padding:18px;border-radius:14px;background:#f7f4ee">
+          <p><strong>Service:</strong> ${data.serviceTitle}</p>
+          <p><strong>Original request:</strong> ${formatScheduleWindow(data.currentSlot || data.requestedSlot)}</p>
+          ${
+            data.scheduleNote
+              ? `<p><strong>Admin note:</strong> ${data.scheduleNote}</p>`
+              : ''
+          }
+        </div>
+        <p style="margin-top:18px">This meeting request has been removed from your scheduling calendar. If you still want to continue, please contact the Tata Islem team for a new arrangement.</p>
+        <p><a href="${buildDashboardLink('/dashboard')}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#183b59;color:#fff;text-decoration:none">Open my dashboard</a></p>
+      </div>
+    </div>
+  </div>
+`;
+
 const buildAdminServiceScheduleTemplate = (data, mode) => {
   const heading =
     mode === 'client_selected_slot'
@@ -564,11 +590,15 @@ export const sendServiceScheduleDecisionMail = async (data, mode) => {
     const subject =
       mode === 'confirmed'
         ? 'Your service meeting is confirmed'
-        : 'New meeting dates were proposed for your service';
+        : mode === 'cancelled'
+          ? 'Your service meeting request was declined'
+          : 'New meeting dates were proposed for your service';
     const html =
       mode === 'confirmed'
         ? buildServiceConfirmedTemplate(data)
-        : buildServiceAlternativesTemplate(data);
+        : mode === 'cancelled'
+          ? buildServiceCancelledTemplate(data)
+          : buildServiceAlternativesTemplate(data);
 
     await sendMailWithDiagnostics(
       {
