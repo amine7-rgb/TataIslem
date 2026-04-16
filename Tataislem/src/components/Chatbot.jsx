@@ -86,7 +86,7 @@ export default function Chatbot({ close }) {
         }
 
         if (full.includes('[OPEN:booking]')) {
-          document.getElementById('floating-button')?.click();
+          document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' });
         }
 
         full.split('').forEach((char, i) => {

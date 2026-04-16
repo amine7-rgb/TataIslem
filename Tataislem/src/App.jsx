@@ -49,40 +49,6 @@ function Home() {
         </div>
       </div>
 
-      <div id="container-floating">
-        <button id="floating-button" type="button">
-          <p className="plus">+</p>
-        </button>
-
-        <button
-          type="button"
-          className="nds nd1"
-          onClick={() => {
-            const eventSection = document.getElementById('events');
-            if (eventSection) eventSection.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
-          <img
-            src="https://img.icons8.com/ios-filled/50/ffffff/calendar.png"
-            alt="Event"
-          />
-        </button>
-
-        <button
-          type="button"
-          className="nds nd2"
-          onClick={() => {
-            const contactSection = document.getElementById('contact');
-            if (contactSection) contactSection.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
-          <img
-            src="https://img.icons8.com/ios-filled/50/ffffff/contacts.png"
-            alt="Contact"
-          />
-        </button>
-      </div>
-
       <ChatbotWidget />
       <Footer />
     </>
