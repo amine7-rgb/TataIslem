@@ -108,6 +108,7 @@ export default function AuthPage() {
   const updateMode = (nextMode) => {
     setMode(nextMode);
     setForgotSuccessMessage('');
+    setPendingVerificationEmail('');
     setSearchParams((current) => {
       const params = new URLSearchParams(current);
       params.set('mode', nextMode);
@@ -126,6 +127,8 @@ export default function AuthPage() {
     } catch (error) {
       if (error?.data?.requiresVerification) {
         setPendingVerificationEmail(loginForm.email);
+      } else {
+        setPendingVerificationEmail('');
       }
 
       errorToast(error.message);
@@ -143,7 +146,6 @@ export default function AuthPage() {
         ...registerForm,
         phoneNumber: normalizePhoneNumber(registerForm.phoneNumber),
       });
-      setPendingVerificationEmail(registerForm.email);
       setLoginForm((current) => ({ ...current, email: registerForm.email }));
       successToast('Account created. Check your inbox to verify your email.');
       setRegisterForm(initialRegisterForm);
@@ -176,7 +178,7 @@ export default function AuthPage() {
   };
 
   const handleResendVerification = async () => {
-    const email = pendingVerificationEmail || loginForm.email || registerForm.email;
+    const email = pendingVerificationEmail;
 
     if (!email) {
       errorToast('Enter your email first');
@@ -267,9 +269,16 @@ export default function AuthPage() {
                   placeholder="name@example.com"
                   autoComplete="email"
                   value={loginForm.email}
-                  onChange={(event) =>
-                    setLoginForm((current) => ({ ...current, email: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    const nextEmail = event.target.value;
+                    setLoginForm((current) => ({ ...current, email: nextEmail }));
+                    setPendingVerificationEmail((current) =>
+                      current &&
+                      current.trim().toLowerCase() !== nextEmail.trim().toLowerCase()
+                        ? ''
+                        : current,
+                    );
+                  }}
                   required
                 />
               </label>
@@ -309,7 +318,13 @@ export default function AuthPage() {
                 {submitting === 'login' ? 'Signing in...' : 'Access Dashboard'}
               </button>
 
-              <div className="auth-secondary-actions auth-secondary-actions--split">
+              <div
+                className={`auth-secondary-actions ${
+                  pendingVerificationEmail
+                    ? 'auth-secondary-actions--split'
+                    : 'auth-secondary-actions--single'
+                }`}
+              >
                 <button
                   type="button"
                   className="auth-link-button auth-link-button--soft"
@@ -317,13 +332,15 @@ export default function AuthPage() {
                 >
                   Forgot password?
                 </button>
-                <button
-                  type="button"
-                  className="auth-link-button auth-link-button--soft"
-                  onClick={handleResendVerification}
-                >
-                  Resend verification
-                </button>
+                {pendingVerificationEmail ? (
+                  <button
+                    type="button"
+                    className="auth-link-button auth-link-button--soft"
+                    onClick={handleResendVerification}
+                  >
+                    Resend verification
+                  </button>
+                ) : null}
               </div>
 
               {pendingVerificationEmail ? (

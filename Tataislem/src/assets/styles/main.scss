@@ -5204,6 +5204,12 @@ section {
   justify-self: flex-end;
 }
 
+.auth-secondary-actions--single {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .profile-editor-meta-list {
   display: grid;
   gap: 10px;
@@ -5286,6 +5292,11 @@ section {
   .auth-secondary-actions--split .auth-link-button:first-child,
   .auth-secondary-actions--split .auth-link-button:last-child {
     justify-self: stretch;
+  }
+
+  .auth-secondary-actions--single {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .auth-link-button--soft {
