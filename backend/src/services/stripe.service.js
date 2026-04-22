@@ -4,12 +4,7 @@ import { buildClientRouteUrl } from '../config/clientOrigins.js';
 
 dotenv.config();
 
-const normalizeStripeSecretKey = (value) =>
-  String(value || '')
-    .trim()
-    .replace(/[^\x20-\x7E]/g, '');
-
-const stripe = new Stripe(normalizeStripeSecretKey(process.env.STRIPE_SECRET_KEY));
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const stripeClient = stripe;
 

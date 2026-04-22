@@ -95,7 +95,7 @@ export default function Contact() {
 
               <div className="contact-item">
                 <FaEnvelope className="contact-icon" />
-                <span>Tataislem@gmail.com</span>
+                <span>info@tata-islem.com</span>
               </div>
             </div>
           </div>

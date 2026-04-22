@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="footer-col brand">
           <img src={logo} alt="Logo" className="footer-logo" />
           <p>
-            Spiritual coaching designed to help you reconnect with your inner clarity,
+            Spiritual mentoring designed to help you reconnect with your inner clarity,
             align your decisions, and live consciously every moment.
           </p>
         </div>
@@ -57,7 +57,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-bottom">
-        © {new Date().getFullYear()} Spiritual Coaching — All rights reserved
+        © {new Date().getFullYear()} Human & business strategist — All rights reserved
       </div>
     </footer>
   );

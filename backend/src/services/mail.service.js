@@ -36,10 +36,53 @@ const resolveMailSecure = () => {
 export const buildMailFromAddress = (displayName = 'Tata Islem') =>
   `"${displayName}" <${process.env.MAIL_FROM || process.env.MAIL_USER}>`;
 
+export const buildReplyToAddress = () =>
+  String(process.env.MAIL_REPLY_TO || process.env.MAIL_FROM || process.env.MAIL_USER || '')
+    .trim();
+
 const shouldSaveMailPreview = () =>
   String(process.env.MAIL_SAVE_PREVIEW || '')
     .trim()
     .toLowerCase() === 'true';
+
+const derivePlainText = (htmlContent = '') =>
+  String(htmlContent || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<li>/gi, '- ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+
+const withMailDefaults = (mailOptions = {}) => {
+  const html = String(mailOptions.html || '').trim();
+  const replyTo = buildReplyToAddress();
+
+  return {
+    ...mailOptions,
+    replyTo: mailOptions.replyTo || replyTo || undefined,
+    sender: mailOptions.sender || process.env.MAIL_FROM || process.env.MAIL_USER || undefined,
+    text: mailOptions.text || (html ? derivePlainText(html) : undefined),
+    headers: {
+      'X-Auto-Response-Suppress': 'OOF, AutoReply',
+      ...(mailOptions.headers || {}),
+    },
+  };
+};
 
 const writeMailPreview = async ({ context, mailOptions, messageId }) => {
   const htmlContent = String(mailOptions.html || '').trim();
@@ -97,13 +140,14 @@ export const transporter = nodemailer.createTransport({
 });
 
 export const sendMailWithDiagnostics = async (mailOptions, context = 'mail') => {
-  const info = await transporter.sendMail(mailOptions);
+  const preparedMailOptions = withMailDefaults(mailOptions);
+  const info = await transporter.sendMail(preparedMailOptions);
   const accepted = Array.isArray(info.accepted) ? info.accepted.filter(Boolean) : [];
   const rejected = Array.isArray(info.rejected) ? info.rejected.filter(Boolean) : [];
   const previewPath = shouldSaveMailPreview()
     ? await writeMailPreview({
         context,
-        mailOptions,
+        mailOptions: preparedMailOptions,
         messageId: info.messageId,
       })
     : null;
@@ -551,7 +595,7 @@ export const sendAdminPaymentMail = async (data, type) => {
 
     await sendMailWithDiagnostics(
       {
-        from: buildMailFromAddress('Tata Islem System'),
+        from: buildMailFromAddress('Tata Islem'),
         to: adminRecipients,
         subject,
         html: htmlContent,
@@ -621,7 +665,7 @@ export const sendAdminServiceScheduleMail = async (data, mode = 'new_request') =
 
     await sendMailWithDiagnostics(
       {
-        from: buildMailFromAddress('Tata Islem System'),
+        from: buildMailFromAddress('Tata Islem'),
         to: adminRecipients,
         subject:
           mode === 'client_selected_slot'

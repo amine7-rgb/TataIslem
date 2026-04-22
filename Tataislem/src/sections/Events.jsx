@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import 'react-phone-input-2/lib/style.css';
 import AuthGateModal from '../components/AuthGateModal';
@@ -22,6 +23,7 @@ export default function Events() {
   const recaptchaRef = useRef(null);
   const { user } = useAuth();
   const today = useMemo(() => new Date(), []);
+  const modalRoot = typeof document !== 'undefined' ? document.body : null;
   const recaptchaEnabled =
     (import.meta.env.VITE_RECAPTCHA_ENABLED
       ? import.meta.env.VITE_RECAPTCHA_ENABLED === 'true'
@@ -87,6 +89,25 @@ export default function Events() {
       ignore = true;
     };
   }, [currentPage, filter]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined;
+    }
+
+    const isModalOpen = showBookingModal || showDetailsModal;
+
+    if (!isModalOpen) {
+      return undefined;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [showBookingModal, showDetailsModal]);
 
   const visiblePages = useMemo(
     () => buildVisiblePages(pagination.page, pagination.totalPages),
@@ -304,194 +325,204 @@ export default function Events() {
         ) : null}
       </div>
 
-      {showBookingModal && selectedEvent && user ? (
-        <div
-          className="modal-overlay active"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              setShowBookingModal(false);
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setShowBookingModal(false);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="modal-content" role="dialog" aria-modal="true">
-            <div className="modal-left">
-              <img
-                src={getImageUrl(selectedEvent.image)}
-                alt={selectedEvent.title}
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = '/assets/images/default.jpg';
-                }}
-              />
-            </div>
-
-            <div className="modal-right">
-              <button
-                type="button"
-                className="details-close"
-                onClick={() => setShowBookingModal(false)}
-              >
-                x
-              </button>
-
-              <h2>Book Your Seat</h2>
-              <p>
-                <strong>{selectedEvent.title}</strong>
-              </p>
-
-              <div className="account-summary-card">
-                <div>
-                  <span>Account</span>
-                  <strong>{user.fullName}</strong>
+      {showBookingModal && selectedEvent && user && modalRoot
+        ? createPortal(
+            <div
+              className="modal-overlay active"
+              onClick={(event) => {
+                if (event.target === event.currentTarget) {
+                  setShowBookingModal(false);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setShowBookingModal(false);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="modal-content" role="dialog" aria-modal="true">
+                <div className="modal-left">
+                  <img
+                    src={getImageUrl(selectedEvent.image)}
+                    alt={selectedEvent.title}
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = '/assets/images/default.jpg';
+                    }}
+                  />
                 </div>
-                <div>
-                  <span>Email</span>
-                  <strong>{user.email}</strong>
-                </div>
-                <div>
-                  <span>Phone</span>
-                  <strong>{user.phoneNumber}</strong>
+
+                <div className="modal-right">
+                  <button
+                    type="button"
+                    className="details-close"
+                    onClick={() => setShowBookingModal(false)}
+                  >
+                    x
+                  </button>
+
+                  <h2>Book Your Seat</h2>
+                  <p>
+                    <strong>{selectedEvent.title}</strong>
+                  </p>
+
+                  <div className="account-summary-card">
+                    <div>
+                      <span>Account</span>
+                      <strong>{user.fullName}</strong>
+                    </div>
+                    <div>
+                      <span>Email</span>
+                      <strong>{user.email}</strong>
+                    </div>
+                    <div>
+                      <span>Phone</span>
+                      <strong>{user.phoneNumber}</strong>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSubmit}>
+                    <div className="gender-radio">
+                      <input
+                        type="radio"
+                        id="male"
+                        name="gender"
+                        value="male"
+                        checked={gender === 'male'}
+                        onChange={(event) => setGender(event.target.value)}
+                      />
+                      <label htmlFor="male">Male</label>
+
+                      <input
+                        type="radio"
+                        id="female"
+                        name="gender"
+                        value="female"
+                        checked={gender === 'female'}
+                        onChange={(event) => setGender(event.target.value)}
+                      />
+                      <label htmlFor="female">Female</label>
+                    </div>
+
+                    <button type="submit" disabled={loading}>
+                      {loading ? 'Redirecting...' : 'Pay with Stripe'}
+                    </button>
+
+                    {recaptchaEnabled ? (
+                      <ReCAPTCHA
+                        sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                        size="invisible"
+                        ref={recaptchaRef}
+                      />
+                    ) : null}
+                  </form>
                 </div>
               </div>
+            </div>,
+            modalRoot,
+          )
+        : null}
 
-              <form onSubmit={handleSubmit}>
-                <div className="gender-radio">
-                  <input
-                    type="radio"
-                    id="male"
-                    name="gender"
-                    value="male"
-                    checked={gender === 'male'}
-                    onChange={(event) => setGender(event.target.value)}
-                  />
-                  <label htmlFor="male">Male</label>
-
-                  <input
-                    type="radio"
-                    id="female"
-                    name="gender"
-                    value="female"
-                    checked={gender === 'female'}
-                    onChange={(event) => setGender(event.target.value)}
-                  />
-                  <label htmlFor="female">Female</label>
-                </div>
-
-                <button type="submit" disabled={loading}>
-                  {loading ? 'Redirecting...' : 'Pay with Stripe'}
+      {showDetailsModal && selectedEvent && modalRoot
+        ? createPortal(
+            <div
+              className="modal-overlay active"
+              onClick={(event) => {
+                if (event.target === event.currentTarget) {
+                  setShowDetailsModal(false);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setShowDetailsModal(false);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <div
+                className="modal-content details-modal"
+                role="dialog"
+                aria-modal="true"
+              >
+                <button
+                  type="button"
+                  className="details-close"
+                  onClick={() => setShowDetailsModal(false)}
+                >
+                  x
                 </button>
 
-                {recaptchaEnabled ? (
-                  <ReCAPTCHA
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                    size="invisible"
-                    ref={recaptchaRef}
+                <div className="details-header">
+                  <img
+                    src={getImageUrl(selectedEvent.image)}
+                    alt={selectedEvent.title}
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = '/assets/images/default.jpg';
+                    }}
                   />
-                ) : null}
-              </form>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {showDetailsModal && selectedEvent ? (
-        <div
-          className="modal-overlay active"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              setShowDetailsModal(false);
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setShowDetailsModal(false);
-            }
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="modal-content details-modal" role="dialog" aria-modal="true">
-            <button
-              type="button"
-              className="details-close"
-              onClick={() => setShowDetailsModal(false)}
-            >
-              x
-            </button>
-
-            <div className="details-header">
-              <img
-                src={getImageUrl(selectedEvent.image)}
-                alt={selectedEvent.title}
-                onError={(event) => {
-                  event.currentTarget.onerror = null;
-                  event.currentTarget.src = '/assets/images/default.jpg';
-                }}
-              />
-            </div>
-
-            <div className="details-body grid-layout">
-              <div className="details-map">
-                <iframe
-                  title="event-location"
-                  src={`https://maps.google.com/maps?q=${selectedEvent.location.coordinates[1]},${selectedEvent.location.coordinates[0]}&z=14&output=embed`}
-                  loading="lazy"
-                />
-              </div>
-
-              <div className="details-info">
-                <h2>{selectedEvent.title}</h2>
-
-                <div className="details-meta">
-                  <span>Date: {new Date(selectedEvent.date).toLocaleString()}</span>
-                  <span>Seats: {selectedEvent.availableSeats} seats left</span>
-                  <span>Price: {selectedEvent.price} EUR</span>
                 </div>
 
-                <p className="event-location">Location: {selectedEvent.address}</p>
+                <div className="details-body grid-layout">
+                  <div className="details-map">
+                    <iframe
+                      title="event-location"
+                      src={`https://maps.google.com/maps?q=${selectedEvent.location.coordinates[1]},${selectedEvent.location.coordinates[0]}&z=14&output=embed`}
+                      loading="lazy"
+                    />
+                  </div>
 
-                <p className="details-desc">
-                  Join us for an unforgettable experience. Book now and enjoy premium
-                  access to this exclusive event.
-                </p>
+                  <div className="details-info">
+                    <h2>{selectedEvent.title}</h2>
 
-                <div className="details-actions">
-                  <a
-                    href={`https://www.google.com/maps?q=${selectedEvent.location.coordinates[1]},${selectedEvent.location.coordinates[0]}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="book-btn"
-                  >
-                    Open in Google Maps
-                  </a>
+                    <div className="details-meta">
+                      <span>Date: {new Date(selectedEvent.date).toLocaleString()}</span>
+                      <span>Seats: {selectedEvent.availableSeats} seats left</span>
+                      <span>Price: {selectedEvent.price} EUR</span>
+                    </div>
 
-                  {!isEventExpired(selectedEvent.date) ? (
-                    <button
-                      type="button"
-                      className="book-btn"
-                      onClick={() => {
-                        setShowDetailsModal(false);
-                        handleBookingAccess(selectedEvent);
-                      }}
-                    >
-                      Book Your Seat
-                    </button>
-                  ) : null}
+                    <p className="event-location">Location: {selectedEvent.address}</p>
+
+                    <p className="details-desc">
+                      Join us for an unforgettable experience. Book now and enjoy premium
+                      access to this exclusive event.
+                    </p>
+
+                    <div className="details-actions">
+                      <a
+                        href={`https://www.google.com/maps?q=${selectedEvent.location.coordinates[1]},${selectedEvent.location.coordinates[0]}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="book-btn"
+                      >
+                        Open in Google Maps
+                      </a>
+
+                      {!isEventExpired(selectedEvent.date) ? (
+                        <button
+                          type="button"
+                          className="book-btn"
+                          onClick={() => {
+                            setShowDetailsModal(false);
+                            handleBookingAccess(selectedEvent);
+                          }}
+                        >
+                          Book Your Seat
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            modalRoot,
+          )
+        : null}
 
       <AuthGateModal
         open={showAuthGate}
