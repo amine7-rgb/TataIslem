@@ -11,8 +11,8 @@ export default function Hero() {
           <div className="carousel-item active">
             <video src={hero2} autoPlay loop muted className="d-block w-100" />
             <div className="carousel-caption glass-caption">
-              <h1>Clarity without overthinking</h1>
-              <p>Remove mental noise. Move with ease and precision.</p>
+              <h1>my brain is my weapon</h1>
+              <p>my soul is my compass</p>
               <a href="#about" className="btn btn-gold">
                 Discover
               </a>
