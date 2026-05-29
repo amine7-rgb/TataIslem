@@ -1,16 +1,40 @@
 import React from 'react';
 import { FaWhatsapp, FaLinkedin, FaInstagram } from 'react-icons/fa';
 import logo from '../assets/images/logo.jpeg';
+import brainzBadge from '../assets/images/brainz-executive-contributor-badge.png';
 
 export default function Footer() {
   return (
     <footer id="footer">
       <div className="footer-top container">
         <div className="footer-col brand">
-          <img src={logo} alt="Logo" className="footer-logo" />
+          <div className="footer-brand-head">
+            <div className="footer-authority-pill">
+              <div className="footer-authority-logo">
+                <img src={logo} alt="Tata Islem logo" className="footer-logo" />
+              </div>
+
+              <div className="footer-authority-copy">
+                <span>2026</span>
+                <div>
+                  <strong>Brainz Magazine</strong>
+                  <small>Executive Contributor</small>
+                </div>
+              </div>
+
+              <div className="footer-authority-badge">
+                <img
+                  src={brainzBadge}
+                  alt="Brainz Magazine Executive Contributor badge"
+                />
+              </div>
+            </div>
+          </div>
+
           <p>
-            Spiritual mentoring designed to help you reconnect with your inner clarity,
-            align your decisions, and live consciously every moment.
+            We are born great. My work helps people reconnect with that greatness, embody
+            their truth, and build a life, leadership, and business that reflects who they
+            truly are.
           </p>
         </div>
 
